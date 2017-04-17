@@ -8,13 +8,9 @@ process.env['PATH'] = process.env['PATH'] + ':' + process.env['LAMBDA_TASK_ROOT'
 exports.handler = function(event, context) {
 	var memStream = new MemoryStream();
 	var html_utf8 = new Buffer(event.html_base64, 'base64').toString('utf8');
-	var pdfOptions = {
-		pageSize: 'letter',
-		marginLeft: 0,
-		marginRight: 0,
-		orientation: 'Landscape',
-		noFooterLine: true,
-		footerHtml: '<span class="copyright">&copy; All Images are copyrighted by their respective authors &middot; &copy; Tourrs, LLC. All rights reserved.</span><div class="page-number">{{page}}</div>'
+	var pdfOptions = event.pdfOptions || {
+		'pageSize': 'letter',
+		'orientation': 'Portrait'
 	};
 
 	wkhtmltopdf(html_utf8, pdfOptions, function(code, signal) {
@@ -29,7 +25,8 @@ exports.handler = function(event, context) {
 		},{
 			Bucket: 'tours-pdf',
 			Key: 'tours/' + filename + '.pdf',
-			ContentType: 'application/pdf'
+			ContentType: 'application/pdf',
+    		ACL: 'public-read'
 		},{
 			concurrentParts: 2,
 			waitTime: 100000,
