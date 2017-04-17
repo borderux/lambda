@@ -17,7 +17,14 @@ exports.handler = function(event, context) {
 
 		var baseUrl = 'https://s3.amazonaws.com/tours-pdf';
 		
-		var filename = event.name || 'tour' + (new Date()).getTime();
+		var filename;
+		if (event.name) {
+			filename = event.name;
+		} else if (event.pdfId) {
+			filename = 'tour-' + event.pdfId;
+		} else {
+			filename = 'tour-' + (new Date()).getTime();
+		}
 
 		var uploader = new streamingS3(memStream, {
 			accessKeyId:  process.env.accessKeyId,
@@ -50,7 +57,15 @@ exports.handler = function(event, context) {
 		});
 		
 		uploader.on('finished', function (resp, stats) {
-			var webhook = 'https://' + (event.subdomain || 'www') + '.tourrs.com/pdf-complete/' + event.pdfId;
+			var domainPath = event.subdomain || 'www';
+			if (event.subdomain && (event.subdomain === 'dev' || event.subdomain === 'stage')) {
+				// adding in temporary u/p for dev/stage testing
+				var u = encodeURIComponent(process.env.devUsername);
+				var p = encodeURIComponent(process.env.devPassword);
+				domainPath = u + ':' + p + '@' + domainPath;
+			}
+
+			var webhook = 'https://' + domainPath + '.tourrs.com/pdf-complete/' + event.pdfId;
 			console.log('Finished uploading PDF to S3, firing webhook: ' + webhook);
 
 			https.get(webhook, function(response) {
