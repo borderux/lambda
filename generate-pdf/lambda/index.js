@@ -17,26 +17,17 @@ exports.handler = function(event, context) {
 
 		var baseUrl = 'https://s3.amazonaws.com/tours-pdf';
 		
-		var filename;
-		if (event.name) {
-			filename = event.name;
-		} else if (event.pdfId) {
-			filename = 'tour-' + event.pdfId;
-		} else {
-			filename = 'tour-' + (new Date()).getTime();
-		}
-
 		var uploader = new streamingS3(memStream, {
 			accessKeyId:  process.env.accessKeyId,
 			secretAccessKey:  process.env.secretAccessKey
 		},{
 			Bucket: 'tours-pdf',
-			Key: 'tours/' + filename + '.pdf',
+			Key: event.name + '.pdf',
 			ContentType: 'application/pdf',
     		ACL: 'public-read'
 		},{
 			concurrentParts: 2,
-			waitTime: 100000,
+			waitTime: 180000,
 			retries: 1,
 			maxPartSize: 10*1024*1024,    
 		});
@@ -65,13 +56,13 @@ exports.handler = function(event, context) {
 				domainPath = u + ':' + p + '@' + domainPath;
 			}
 
-			var webhook = 'https://' + domainPath + '.tourrs.com/pdf-complete/' + event.pdfId;
+			var webhook = 'https://' + domainPath + '.tourrs.com/pdf-complete/' + event.name;
 			console.log('Finished uploading PDF to S3, firing webhook: ' + webhook);
 
 			https.get(webhook, function(response) {
 				console.log('Webhook response: ' + response.statusCode);
 				context.done(null, {
-					url: baseUrl +  '/' + filename + '.pdf'
+					url: baseUrl +  '/' + event.name + '.pdf'
 				});
 			}).on('error', function(e) {
 				console.log('Got error: ' + e.message);
