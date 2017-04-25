@@ -48,7 +48,7 @@ exports.handler = function(event, context) {
 		});
 		
 		uploader.on('finished', function (resp, stats) {
-			var domainPath = event.subdomain || 'www';
+			var domainPath = event.subdomain && event.subdomain !== 'prod' ? event.subdomain : 'www';
 			if (event.subdomain && (event.subdomain === 'dev' || event.subdomain === 'stage')) {
 				// adding in temporary u/p for dev/stage testing
 				var u = encodeURIComponent(process.env.devUsername);
